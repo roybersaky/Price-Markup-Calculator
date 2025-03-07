@@ -118,7 +118,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Product Calculator</h1>
+        <h1>Product Markup Calculator</h1>
         <button className="reset-button" onClick={reset}>Reset All</button>
       </div>
 
