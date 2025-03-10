@@ -1,6 +1,7 @@
 // App.jsx
 import { useState, useEffect } from 'react';
 import './App.css';
+import ImageTableParser from './component/ImageTableParser';
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -9,15 +10,25 @@ export default function App() {
   const [newFee, setNewFee] = useState({ name: '', cost: '' });
   const [percentageIncrease, setPercentageIncrease] = useState(0);
   const [manualPercentage, setManualPercentage] = useState('');
+  const [showImageParser, setShowImageParser] = useState(false);
 
   // Load data from localStorage on mount
   useEffect(() => {
     const savedProducts = localStorage.getItem('products');
     const savedFees = localStorage.getItem('fees');
-    
-    if (savedProducts) setProducts(JSON.parse(savedProducts));
+  
+    if (savedProducts) {
+      const parsedProducts = JSON.parse(savedProducts).map(product => ({
+        ...product,
+        total: product.price * product.amount, // Ensure total is always set
+      }));
+      setProducts(parsedProducts);
+    }
+  
     if (savedFees) setFees(JSON.parse(savedFees));
   }, []);
+  
+  
 
   // Save to localStorage whenever data changes
   useEffect(() => {
@@ -54,14 +65,23 @@ export default function App() {
   };
 
   const calculateTotals = () => {
-    const totalProductCost = products.reduce((acc, product) => acc + product.total, 0);
+    const updatedProducts = products.map(product => ({
+      ...product,
+      total: product.total ?? product.price * product.amount, // Ensure total is defined
+    }));
+  
+    const totalProductCost = updatedProducts.reduce((acc, product) => acc + product.total, 0);
     const totalFees = fees.reduce((acc, fee) => acc + fee.cost, 0);
     const grandTotal = totalProductCost + totalFees;
     
     const increase = ((grandTotal - totalProductCost) / totalProductCost) * 100;
     setPercentageIncrease(increase);
     setManualPercentage(increase.toFixed(2));
+  
+    setProducts(updatedProducts); // Update products to prevent future issues
   };
+  
+  
 
   const handlePercentageChange = (e) => {
     const value = e.target.value;
@@ -109,9 +129,27 @@ export default function App() {
     setFees([]);
     setPercentageIncrease(0);
     setManualPercentage('');
+    setShowImageParser(false);
   };
 
+  const handleImportFromImage = (extractedProducts) => {
+    console.log("Extracted Products from Image:", extractedProducts);
+    setProducts((prevProducts) => {
+      const updatedProducts = [...prevProducts, ...extractedProducts];
+      return updatedProducts;
+    });
+  
+    setTimeout(() => {
+      console.log("Final Products in State:", products);
+    }, 500);
+    
+    setShowImageParser(false);
+  };
+  
+  
+
   const totalProductCost = products.reduce((acc, product) => acc + product.total, 0);
+  console.log('Total Product Cost:', totalProductCost);
   const totalFees = fees.reduce((acc, fee) => acc + fee.cost, 0);
   const grandTotal = totalProductCost + totalFees;
 
@@ -172,6 +210,19 @@ export default function App() {
             </div>
             <button type="submit" className="submit-button">Add Fee</button>
           </form>
+
+          {!showImageParser ? (
+            <div className="import-button-container">
+              <button 
+                className="import-button"
+                onClick={() => setShowImageParser(true)}
+              >
+                Import from Image
+              </button>
+            </div>
+          ) : (
+            <ImageTableParser onProductsImported={handleImportFromImage} />
+          )}
         </div>
 
         <div className="lists-container">
